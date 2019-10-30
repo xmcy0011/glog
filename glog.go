@@ -109,9 +109,10 @@ const severityChar = "IWEF"
 
 var severityName = []string{
 	infoLog:    "INFO",
-	warningLog: "WARNING",
-	errorLog:   "ERROR",
-	fatalLog:   "FATAL",
+	warningLog: "WARN",
+	//warningLog: "WARNING",
+	errorLog: "ERROR",
+	fatalLog: "FATAL",
 }
 
 // get returns the value of the severity.
@@ -559,25 +560,61 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 
 	// Avoid Fprintf, for speed. The format is so simple that we can do it quickly by hand.
 	// It's worth about 3X. Fprintf is hard.
-	_, month, day := now.Date()
+	year, month, day := now.Date()
 	hour, minute, second := now.Clock()
 	// Lmmdd hh:mm:ss.uuuuuu threadid file:line]
+	// I1025 13:57:40.634761   10698 main.go:99] Listen on 0.0.0.0:8500
+
+	// modify_by yingchun.xu 2019-10-25 更改默认日志输出格式
+	// 参考log4cxx：%d{yyyy-MM-dd HH:mm:ss.SSS} [%p] [%t] [%c] - %m%n
+	// 2019-10-25 14:20:53.010 [INFO] [0x11888f5c0] [IM] - <DBServConn.cpp>|<167>|<OnConfirm>,connect to db server success
+	// [level] [topic] [title]
 	buf.tmp[0] = severityChar[s]
-	buf.twoDigits(1, int(month))
-	buf.twoDigits(3, day)
-	buf.tmp[5] = ' '
-	buf.twoDigits(6, hour)
-	buf.tmp[8] = ':'
-	buf.twoDigits(9, minute)
-	buf.tmp[11] = ':'
-	buf.twoDigits(12, second)
-	buf.tmp[14] = '.'
-	buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
-	buf.tmp[21] = ' '
-	buf.nDigits(7, 22, pid, ' ') // TODO: should be TID
-	buf.tmp[29] = ' '
-	buf.Write(buf.tmp[:30])
+	buf.nDigits(4, 0, year, '0')
+	buf.tmp[4] = '-'
+	buf.twoDigits(5, int(month))
+	buf.tmp[7] = '-'
+	buf.twoDigits(8, day)
+	buf.tmp[10] = ' '
+	buf.twoDigits(11, hour)
+	buf.tmp[13] = ':'
+	buf.twoDigits(14, minute)
+	buf.tmp[16] = ':'
+	buf.twoDigits(17, second)
+	buf.tmp[19] = '.'
+	buf.nDigits(3, 20, now.Nanosecond()/1000, '0')
+	buf.tmp[23] = ' '
+
+	// Level
+	buf.tmp[24] = '['
+	index := 25
+	level := []byte(severityName[s])
+	for i := 0; i < len(level); i++ {
+		buf.tmp[index+i] = level[i]
+	}
+	index += len(level)
+	buf.tmp[index] = ']'
+	index++
+	buf.tmp[index] = ' '
+	index++
+
+	// tid
+	buf.tmp[index] = '['
+	index++
+	buf.tmp[index] = '0'
+	index++
+	buf.tmp[index] = ']'
+	index++
+	buf.tmp[index] = ' '
+	index++
+
+	// file
+	buf.tmp[index] = '['
+	index++
+	buf.Write(buf.tmp[:index])
 	buf.WriteString(file)
+
+	// append :181]
 	buf.tmp[0] = ':'
 	n := buf.someDigits(1, line)
 	buf.tmp[n+1] = ']'

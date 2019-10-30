@@ -178,7 +178,7 @@ func TestHeader(t *testing.T) {
 		return time.Date(2006, 1, 2, 15, 4, 5, .067890e9, time.Local)
 	}
 	pid = 1234
-	Info("test")
+	Errorf("test :%d",3234)
 	var line int
 	format := "I0102 15:04:05.067890    1234 glog_test.go:%d] test\n"
 	n, err := fmt.Sscanf(contents(infoLog), format, &line)
